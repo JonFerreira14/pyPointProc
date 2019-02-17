@@ -12,7 +12,6 @@ def hawkesIntensity(mu, alpha, beta, arrivals, stepScale=10, plot=False):
 	T = arrivals[-1]
 	intensity, timestamps = [], []
 
-
 	df = {"ArrivalTime":arrivals}
 	arrivalDF = pd.DataFrame(data=df)
 	arrivalDF = arrivalDF.set_index("ArrivalTime", drop=False)
@@ -103,23 +102,18 @@ def goodnessOfFit(compensatorValues, Plot=False):
 	return rsquared
 
 def logLikelihood(mu, alpha, beta, arrivals):
-	
 	T = arrivals[-1]
 	
-	#find firstSum
 	firstSum = 0
 	for i in arrivals:
 		timeDifference = T - i
 		timeExponential = exp(-beta*timeDifference)-1
-		firstSum += alpha/beta * timeExponential
-	
-	
-	#find rs
+		firstSum += alpha/beta * timeExponential	
+
 	R = np.zeros(len(arrivals))
 
 	for i in range(1,len(R)):
 		R[i] += exp(-beta*(arrivals[i] - arrivals[i-1]))*(1+R[i-1])
-
 	
 	secondSum = 0
 	for i in R:
@@ -132,21 +126,27 @@ def fit(mu, alpha, beta, arrivals):
 	
 	def myFitFunc(x):
 		p1 = abs(x[0])
-		p2 = abs(x[1])
-		p3 = abs(x[2])+abs(x[1])
+		p2 = min(abs(x[1]), abs(x[2]), 500)
+		p3 = min(abs(x[2]), 500)
 		return logLikelihood(p1,p2,p3,arrivals)
 	
+
 	x0 = [mu, alpha, beta]
-	bnds = ((0,np.inf),(0.001, np.inf),(0.001, np.inf))
-	mini = minimize(myFitFunc, x0, method='Powell', options={'maxiter':10000, 'disp':True, 'xtol':1**-20,'ftol':1**-20})#, bounds=bnds)
-	return abs(mini.x[0]), abs(mini.x[1]), (abs(mini.x[1])+abs(mini.x[2]))
+	runLimit = 500
+	iteration = 0
+	while iteration < runLimit:
+		
+		mini = minimize(myFitFunc, x0, method='Powell', options={'maxiter':10000, 'disp':True, 'xtol':1**-20,'ftol':1**-20})#, bounds=bnds)
+	
+		if abs(mini.x[0]) >=500 or min(abs(mini.x[1]), abs(mini.x[2]), 500)>=500 or min(abs(mini.x[2]), 500) >=500:
+			x0 = np.random.rand(3)
+		else:
+			print("solution found:", abs(mini.x[0]), min(abs(mini.x[1]), abs(mini.x[2]), 500), min(abs(mini.x[2]), 500))
+			return abs(mini.x[0]), min(abs(mini.x[1]), abs(mini.x[2]), 500), min(abs(mini.x[2]), 500)
+		iteration+=1
+	print("Could not find good solution")
+	return abs(mini.x[0]), min(abs(mini.x[1]), abs(mini.x[2]), 500), min(abs(mini.x[2]), 500)
 
-
-def arrivalFrequency(arrivals, bucketSize):
-	return
-
-def cummulativeArrivals(arrivals):
-	return
 
 
 
