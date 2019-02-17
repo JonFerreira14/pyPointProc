@@ -6,13 +6,12 @@ import scipy.stats as stats
 from scipy.optimize import minimize
 
 def exponentialKernel(alpha, beta, x, y):
-	
 	return (alpha*exp(-beta*(x-y)))
 
-def hawkesIntensity(mu, alpha, beta, arrivals):
+def hawkesIntensity(mu, alpha, beta, arrivals, stepScale=10, plot=False):
 	T = arrivals[-1]
 	intensity, timestamps = [], []
-	stepScale = 10
+
 
 	df = {"ArrivalTime":arrivals}
 	arrivalDF = pd.DataFrame(data=df)
@@ -25,9 +24,13 @@ def hawkesIntensity(mu, alpha, beta, arrivals):
 		intensity.append(mu + tempSum)
 		timestamps.append(i/stepScale)
 
+	if plot == True:
+		plt.plot(timestamps, intensity)
+		plt.show()
+
 	return intensity, timestamps
 
-def thinningFunction(T, mu, alpha, beta):
+def thinningFunction(T, mu, alpha, beta, rounding=1):
 	epsilon = 10**(-10)
 	P = []
 	t = 0
@@ -40,7 +43,7 @@ def thinningFunction(T, mu, alpha, beta):
 		M = M[-1]
 		
 		E = np.random.exponential(M)
-		t = t + round(E,1)
+		t = t + round(E, rounding)
 		
 		U = np.random.uniform(0,M)
 		
@@ -53,7 +56,7 @@ def thinningFunction(T, mu, alpha, beta):
 
 	return(P)
 
-def compensatorFunction(mu, alpha, beta, arrivals):
+def compensatorFunction(mu, alpha, beta, arrivals, plot=False):
 	compensatorValues = []
 
 	df = {"ArrivalTime":arrivals}
@@ -72,9 +75,13 @@ def compensatorFunction(mu, alpha, beta, arrivals):
 
 		compensatorValues.append(mu*row[1] - (alpha/beta)*tempSum)
 
+	if plot == True:
+		plt.plot(arrivals, compensatorValues)
+		plt.show()
+
 	return compensatorValues
 
-def goodnessOfFit(compensatorValues):
+def goodnessOfFit(compensatorValues, Plot=False):
 	diffs = []
 	for i in range(0, len(compensatorValues)):
 		if i == 0:
@@ -82,10 +89,16 @@ def goodnessOfFit(compensatorValues):
 		else:
 			diffs.append(compensatorValues[i]-compensatorValues[i-1])
 	
-	rval = stats.probplot(diffs, dist='expon', plot=None)#plt)
+	if Plot == True:
+		Plot = plt
+	else: 
+		Plot = None
+
+	rval = stats.probplot(diffs, dist='expon', plot=Plot)
 	rsquared = rval[1][2]**2
 
-	#plt.show()
+	if Plot == plt:
+		plt.show()
 
 	return rsquared
 
@@ -121,10 +134,7 @@ def fit(mu, alpha, beta, arrivals):
 		p1 = abs(x[0])
 		p2 = abs(x[1])
 		p3 = abs(x[2])+abs(x[1])
-		valToMin = logLikelihood(p1,p2,p3,arrivals)
-		print(valToMin)
-		return valToMin
-
+		return logLikelihood(p1,p2,p3,arrivals)
 	
 	x0 = [mu, alpha, beta]
 	bnds = ((0,np.inf),(0.001, np.inf),(0.001, np.inf))
@@ -140,34 +150,3 @@ def cummulativeArrivals(arrivals):
 
 
 
-if __name__ == "__main__":
-	alpha = 0.6
-	beta = 0.9
-	mu = 0.3
-
-	simulatedArrivals = thinningFunction(100, alpha, beta, mu)
-	#print(simulatedArrivals)	
-
-	intensity, timestamps = hawkesIntensity(mu, alpha, beta, simulatedArrivals)
-
-	compensatorValues = compensatorFunction(mu, alpha, beta, simulatedArrivals)
-	print(goodnessOfFit(compensatorValues))
-
-	plt.plot(timestamps, intensity)
-	#plt.plot(simulatedArrivals, compensatorValues)
-	plt.show()
-
-
-	#optimize
-	print('optimizing...')
-	alpha, beta, mu = fit(alpha, beta, mu, simulatedArrivals)
-	print("opt vals are",alpha, beta, mu)
-
-	intensity, timestamps = hawkesIntensity(mu, alpha, beta, simulatedArrivals)
-
-	compensatorValues = compensatorFunction(mu, alpha, beta, simulatedArrivals)
-	print(goodnessOfFit(compensatorValues))
-
-	plt.plot(timestamps, intensity)
-	#plt.plot(simulatedArrivals, compensatorValues)
-	plt.show()
