@@ -67,7 +67,7 @@ def compensatorFunction(mu, alpha, beta, arrivals, plot=False):
 		tempSum = 0
 		
 		for j in arrivalDF.loc[:row[1],"ArrivalTime"]:
-			if j == row[1] or row[1] == 0:
+			if row[1] == 0:
 				continue
 			tempSum += exponentialKernel(1, beta, row[1], j)-1
 
@@ -117,8 +117,9 @@ def logLikelihood(mu, alpha, beta, arrivals):
 	
 	secondSum = 0
 	for i in R:
-		secondSum =+ log(mu + alpha*i)
+		secondSum += log(mu + alpha*i)
 	   
+	
 	logLikelihood = -(-mu*T + firstSum + secondSum);
 	return logLikelihood
 
@@ -132,21 +133,42 @@ def fit(mu, alpha, beta, arrivals):
 	
 
 	x0 = [mu, alpha, beta]
-	runLimit = 500
+	runLimit = 100
 	iteration = 0
+	bestFuncVal = 10000
+	bestx0 = 0
+
 	while iteration < runLimit:
 		
-		mini = minimize(myFitFunc, x0, method='Powell', options={'maxiter':10000, 'disp':True, 'xtol':1**-20,'ftol':1**-20})#, bounds=bnds)
-	
-		if abs(mini.x[0]) >=500 or min(abs(mini.x[1]), abs(mini.x[2]), 500)>=500 or min(abs(mini.x[2]), 500) >=500:
-			x0 = np.random.rand(3)
-		else:
-			print("solution found:", abs(mini.x[0]), min(abs(mini.x[1]), abs(mini.x[2]), 500), min(abs(mini.x[2]), 500))
-			return abs(mini.x[0]), min(abs(mini.x[1]), abs(mini.x[2]), 500), min(abs(mini.x[2]), 500)
+		mini = minimize(myFitFunc, x0, method='Powell', options={'maxiter':10000, 'disp':False, 'xtol':1**-20,'ftol':1**-20})#, bounds=bnds)
+		
+		currentFuncVal = mini.fun
+		currentx0 = [abs(mini.x[0]), min(abs(mini.x[1]), abs(mini.x[2]), 500), min(abs(mini.x[2]), 500)]
+
+		if currentFuncVal < bestFuncVal:
+			bestFuncVal = currentFuncVal
+			bestx0 = currentx0
+
+
+		x0 = np.random.rand(3)
 		iteration+=1
-	print("Could not find good solution")
-	return abs(mini.x[0]), min(abs(mini.x[1]), abs(mini.x[2]), 500), min(abs(mini.x[2]), 500)
+	
+	if bestx0 == 0:
+		print("erreor: no solution found")
+		return
+
+	return bestx0[0], bestx0[1], bestx0[2]
+
+def cumulativeArrivals(arrivals, plot=False):
+	nCount = np.ones_like(arrivals)
+
+	for i in range(1,len(nCount)):
+		nCount[i] = nCount[i] + nCount[i-1]
 
 
+	if plot == True:
+		plt.plot(arrivals, nCount)
+		plt.show()
 
+	return nCount
 
