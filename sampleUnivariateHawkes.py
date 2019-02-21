@@ -1,15 +1,16 @@
 """
-	Here, we first generate a simulated list of arrivals, through tinning
+	Here, we first generate a simulated list of arrivals, through thinning
 
 	Then we create a hawke's process for these arrivals and measure the goodness of fit by using the compensator function
 
 	Next, we fit the model using the loglikelihood function, then create the fitted hawke's process and measure the goodness 
 	of fit by using the compensator function
 """
-import matplotlib.pyplot as plt
-## Import the required library
+
+## Import the univariate hawkes library
 from pyPointProc.hawkesProc import univariateHawkes as uH
 
+import matplotlib.pyplot as plt
 
 if __name__ == "__main__":
 
@@ -22,9 +23,9 @@ if __name__ == "__main__":
 	beta = 0.9	#
 	
 	## Generate a simulated hawkes process list of a arrivals
-	simulatedArrivals = uH.thinningFunction(100, mu, alpha, beta, 1)
+	simulatedArrivals = uH.thinningFunction(50, mu, alpha, beta, 1)
 	print("simulated arrivals:", simulatedArrivals)	
-
+	
 	## Generate a list of hawkes process intensity at each timestamp, 
 	intensity, timestamps = uH.hawkesIntensity(mu, alpha, beta, simulatedArrivals, 10, True)
 	
@@ -36,7 +37,7 @@ if __name__ == "__main__":
 	plt.show()
 	## Print the r squared value of the function
 	print("r squared is:",uH.goodnessOfFit(compensatorValues, True))
-
+	
 	
 
 	"""

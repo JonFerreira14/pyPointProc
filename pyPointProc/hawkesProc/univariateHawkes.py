@@ -133,14 +133,14 @@ def fit(mu, alpha, beta, arrivals):
 	
 
 	x0 = [mu, alpha, beta]
-	runLimit = 100
+	runLimit = 1000
 	iteration = 0
-	bestFuncVal = 10000
+	bestFuncVal = 10000000000
 	bestx0 = 0
 
 	while iteration < runLimit:
 		
-		mini = minimize(myFitFunc, x0, method='Powell', options={'maxiter':10000, 'disp':False, 'xtol':1**-20,'ftol':1**-20})#, bounds=bnds)
+		mini = minimize(myFitFunc, x0, method='Powell', options={'maxiter':10000, 'disp':False, 'xtol':1**-20,'ftol':1**-20})
 		
 		currentFuncVal = mini.fun
 		currentx0 = [abs(mini.x[0]), min(abs(mini.x[1]), abs(mini.x[2]), 500), min(abs(mini.x[2]), 500)]
@@ -155,7 +155,7 @@ def fit(mu, alpha, beta, arrivals):
 	
 	if bestx0 == 0:
 		print("erreor: no solution found")
-		return
+		return mu, alpha, beta
 
 	return bestx0[0], bestx0[1], bestx0[2]
 
