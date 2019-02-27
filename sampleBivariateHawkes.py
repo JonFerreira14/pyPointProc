@@ -25,3 +25,6 @@ if __name__ == "__main__":
 	plt.plot(tser2, comp2)
 	plt.show()
 	
+	## Goodness of fit
+	print('r squared of series 1 is:', bH.goodnessOfFit(comp1))
+	print('r squared of series 2 is:', bH.goodnessOfFit(comp2))

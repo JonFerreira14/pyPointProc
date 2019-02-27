@@ -55,8 +55,6 @@ def compensatorFunction(arrivals1, arrivals2, params=[0.3,0.2,0.9,0.9,0.8,0.8,1.
 	alpha11, alpha12, alpha21, alpha22 = params[2], params[3], params[4], params[5]
 	beta1, beta2 = params[6], params[7]
 
-	#T = max(arrivals1[-1], arrivals2[-1])
-
 	compensator1, compensator2 = [], []
 
 	df1, df2 = {"ArrivalTime":arrivals1}, {"ArrivalTime":arrivals2}
@@ -103,8 +101,26 @@ def compensatorFunction(arrivals1, arrivals2, params=[0.3,0.2,0.9,0.9,0.8,0.8,1.
 
 	return compensator1, compensator2
 
-def goodnessOfFit():
-	return
+def goodnessOfFit(compensatorValues, Plot=True):
+	diffs = []
+	for i in range(0, len(compensatorValues)):
+		if i == 0:
+			diffs.append(compensatorValues[i])
+		else:
+			diffs.append(compensatorValues[i]-compensatorValues[i-1])
+	
+	if Plot == True:
+		Plot = plt
+	else: 
+		Plot = None
+
+	rval = stats.probplot(diffs, dist='expon', plot=Plot)
+	rsquared = rval[1][2]**2
+
+	if Plot == plt:
+		plt.show()
+
+	return rsquared
 
 def logLikelihood():
 	return
