@@ -48,11 +48,60 @@ def hawkesIntensity(arrivals1, arrivals2, params=[0.3,0.2,0.9,0.9,0.8,0.8,1.0,0.
 
 	return hawkesSeries1, hawkesSeries2, timestamps
 
-def thinningFunction():
-	return
 
-def compensatorFunction():
-	return
+def compensatorFunction(arrivals1, arrivals2, params=[0.3,0.2,0.9,0.9,0.8,0.8,1.0,0.9]):
+	## Setting params
+	mu1, mu2 = params[0], params[1]
+	alpha11, alpha12, alpha21, alpha22 = params[2], params[3], params[4], params[5]
+	beta1, beta2 = params[6], params[7]
+
+	#T = max(arrivals1[-1], arrivals2[-1])
+
+	compensator1, compensator2 = [], []
+
+	df1, df2 = {"ArrivalTime":arrivals1}, {"ArrivalTime":arrivals2}
+	
+	arrivalDF1 = pd.DataFrame(data=df1)
+	arrivalDF2 = pd.DataFrame(data=df2)
+
+	arrivalDF1labels = arrivalDF1.copy()
+	arrivalDF2labels = arrivalDF2.copy()
+	arrivalDF1labels = arrivalDF1labels.set_index("ArrivalTime", drop=False)
+	arrivalDF2labels = arrivalDF2labels.set_index("ArrivalTime", drop=False)
+
+	# Comp 1
+	for row in arrivalDF1.itertuples():
+		tempSum = 0
+		
+		for j in arrivalDF1labels.loc[:row[1],"ArrivalTime"]:
+			if row[0] == 0:
+				continue
+			tempSum += (alpha11/beta1)*(exponentialKernel(1, beta1, row[1], j)-1)
+		
+		for j in arrivalDF2labels.loc[:row[1],"ArrivalTime"]:
+			if row[0] == 0:
+				continue
+			tempSum += (alpha12/beta1)*(exponentialKernel(1, beta1, row[1], j)-1)
+
+		compensator1.append(mu1*row[1] - tempSum)
+	
+	# Comp 2
+	for row in arrivalDF2.itertuples():
+		tempSum = 0
+		
+		for j in arrivalDF1labels.loc[:row[1],"ArrivalTime"]:
+			if row[0] == 0:
+				continue
+			tempSum += (alpha21/beta2)*(exponentialKernel(1, beta2, row[1], j)-1)
+		
+		for j in arrivalDF2labels.loc[:row[1],"ArrivalTime"]:
+			if row[0] == 0:
+				continue
+			tempSum += (alpha22/beta2)*(exponentialKernel(1, beta2, row[1], j)-1)
+
+		compensator2.append(mu2*row[0] - tempSum)
+
+	return compensator1, compensator2
 
 def goodnessOfFit():
 	return
@@ -63,5 +112,12 @@ def logLikelihood():
 def fit():
 	return
 
-def cumulativeArrivals():
-	return
+def cumulativeArrivals(arrivals1, arrivals2):
+	nCount1, nCount2 = np.ones_like(arrivals1), np.ones_like(arrivals2)
+
+	for i in range(1,len(nCount1)):
+		nCount1[i] = nCount1[i] + nCount1[i-1]
+	for i in range(1,len(nCount2)):
+		nCount2[i] = nCount2[i] + nCount2[i-1]
+
+	return nCount1, nCount2
