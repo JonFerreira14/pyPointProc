@@ -209,26 +209,9 @@ def logLikelihood(arrivals1, arrivals2, params=[0.3,0.1,0.6,0.9,0.2,0.5,1.2,1.0]
 def fit(arrivals1, arrivals2, params=[0.3,0.1,0.6,0.9,0.2,0.5,1.2,1.0]):
 	
 	def myFitFunc(x):
-		#find a beter way of doing this
-		x1 = min(max(x[0], 0.0001), 2)
-		x2 = min(max(x[1], 0.0001), 2)
-		x3 = min(max(x[2], 0.0001), 2)
-		x4 = min(max(x[3], 0.0001), 2)
-		x5 = min(max(x[4], 0.0001), 2)
-		x6 = min(max(x[5], 0.0001), 2)
-		x7 = min(max(x[6], 0.0001), 2)
-		x8 = min(max(x[7], 0.0001), 2)
-
 		tList = []
-		tList.append(x1)
-		tList.append(x2)
-		tList.append(x3)
-		tList.append(x4)
-		tList.append(x5)
-		tList.append(x6)
-		tList.append(x7)
-		tList.append(x8)
-
+		for i in x:
+			tList.append(min(max(i, 0.0001), 2))
 		return logLikelihood(arrivals1, arrivals2, tList)
 	
 	x0 = params
@@ -256,25 +239,9 @@ def fit(arrivals1, arrivals2, params=[0.3,0.1,0.6,0.9,0.2,0.5,1.2,1.0]):
 		print("error: no solution found")
 		return params
 
-	#find a beter way of doing this
-	x1 = min(max(bestx0[0], 0.0001), 2)
-	x2 = min(max(bestx0[1], 0.0001), 2)
-	x3 = min(max(bestx0[2], 0.0001), 2)
-	x4 = min(max(bestx0[3], 0.0001), 2)
-	x5 = min(max(bestx0[4], 0.0001), 2)
-	x6 = min(max(bestx0[5], 0.0001), 2)
-	x7 = min(max(bestx0[6], 0.0001), 2)
-	x8 = min(max(bestx0[7], 0.0001), 2)
-
 	tList = []
-	tList.append(x1)
-	tList.append(x2)
-	tList.append(x3)
-	tList.append(x4)
-	tList.append(x5)
-	tList.append(x6)
-	tList.append(x7)
-	tList.append(x8)
+	for i in bestx0:
+		tList.append(min(max(i, 0.0001), 2))
 	return tList
 
 def cumulativeArrivals(arrivals1, arrivals2):
