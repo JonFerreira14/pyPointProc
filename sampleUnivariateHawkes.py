@@ -23,7 +23,7 @@ if __name__ == "__main__":
 	beta = 0.9	#
 	
 	## Generate a simulated hawkes process list of a arrivals
-	simulatedArrivals = uH.thinningFunction(50, mu, alpha, beta, 1)
+	simulatedArrivals = uH.thinningFunction(100, mu, alpha, beta, 1)
 	print("simulated arrivals:", simulatedArrivals)	
 	
 	## Generate a list of hawkes process intensity at each timestamp, 

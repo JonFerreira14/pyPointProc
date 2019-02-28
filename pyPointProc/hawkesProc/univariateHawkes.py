@@ -127,23 +127,23 @@ def fit(mu, alpha, beta, arrivals):
 	
 	def myFitFunc(x):
 		p1 = abs(x[0])
-		p2 = min(abs(x[1]), abs(x[2]), 500)
-		p3 = min(abs(x[2]), 500)
+		p2 = max(min(abs(x[1]), abs(x[2]), 2),.0001)
+		p3 = max(min(abs(x[2]),2),.0001)
 		return logLikelihood(p1,p2,p3,arrivals)
 	
 
 	x0 = [mu, alpha, beta]
-	runLimit = 1000
+	runLimit = 10
 	iteration = 0
 	bestFuncVal = 10000000000
 	bestx0 = 0
 
 	while iteration < runLimit:
 		
-		mini = minimize(myFitFunc, x0, method='Powell', options={'maxiter':10000, 'disp':False, 'xtol':1**-20,'ftol':1**-20})
+		mini = minimize(myFitFunc, x0, method='Nelder-Mead', options={'maxiter':10000, 'maxfev':10000, 'disp':False})#, 'xatol':10**-6,'fatol':10*-6})
 		
 		currentFuncVal = mini.fun
-		currentx0 = [abs(mini.x[0]), min(abs(mini.x[1]), abs(mini.x[2]), 500), min(abs(mini.x[2]), 500)]
+		currentx0 = [abs(mini.x[0]), max(min(abs(mini.x[1]), abs(mini.x[2]), 2),.0001), max(min(abs(mini.x[2]),2),.0001)]
 
 		if currentFuncVal < bestFuncVal:
 			bestFuncVal = currentFuncVal
@@ -154,7 +154,7 @@ def fit(mu, alpha, beta, arrivals):
 		iteration+=1
 	
 	if bestx0 == 0:
-		print("erreor: no solution found")
+		print("error: no solution found")
 		return mu, alpha, beta
 
 	return bestx0[0], bestx0[1], bestx0[2]
