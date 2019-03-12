@@ -4,11 +4,13 @@ import numpy as np
 import pandas as pd
 import scipy.stats as stats
 from scipy.optimize import minimize
+import numba
 
 def exponentialKernel(alpha, beta, x, y):
 	return (alpha*exp(-beta*(x-y)))
 
-def hawkesIntensity(arrivals1, arrivals2, params=[0.3,0.1,0.6,0.9,0.2,0.5,1.2,1.0], granularity=10):
+@numba.jit
+def hawkesIntensity(arrivals1, arrivals2, params=(0.3,0.1,0.6,0.9,0.2,0.5,1.2,1.0), granularity=10):
 	## Setting params
 	mu1, mu2 = params[0], params[1]
 	alpha11, alpha12, alpha21, alpha22 = params[2], params[3], params[4], params[5]
@@ -47,8 +49,8 @@ def hawkesIntensity(arrivals1, arrivals2, params=[0.3,0.1,0.6,0.9,0.2,0.5,1.2,1.
 	
 
 	return hawkesSeries1, hawkesSeries2, timestamps
-
-def compensatorFunction(arrivals1, arrivals2, params=[0.3,0.1,0.6,0.9,0.2,0.5,1.2,1.0]):
+@numba.jit
+def compensatorFunction(arrivals1, arrivals2, params=(0.3,0.1,0.6,0.9,0.2,0.5,1.2,1.0)):
 	## Setting params
 	mu1, mu2 = params[0], params[1]
 	alpha11, alpha12, alpha21, alpha22 = params[2], params[3], params[4], params[5]
@@ -121,7 +123,8 @@ def goodnessOfFit(compensatorValues, Plot=True):
 
 	return rsquared
 
-def logLikelihood(arrivals1, arrivals2, params=[0.3,0.1,0.6,0.9,0.2,0.5,1.2,1.0]):
+@numba.jit(nopython=True)
+def logLikelihood(arrivals1, arrivals2, params=(0.3,0.1,0.6,0.9,0.2,0.5,1.2,1.0)):
 	## Setting params
 	mu1, mu2 = params[0], params[1]
 	alpha11, alpha12, alpha21, alpha22 = params[2], params[3], params[4], params[5]
@@ -131,16 +134,16 @@ def logLikelihood(arrivals1, arrivals2, params=[0.3,0.1,0.6,0.9,0.2,0.5,1.2,1.0]
 
 	## LL = LL(1) + LL(2)
 	## LL(1) = -mu1*T + comp val 1+
-	
+	## (alpha*exp(-beta*(x-y)))
 	## Calc compensator sums
 	sum11 = 0
 	for i in arrivals1:
-		sum11 += (1 - exponentialKernel(1, beta1, T, i))
+		sum11 += (1 - exp(-beta1*(T-i)))
 	sum11 = (alpha11/beta1)*sum11
 
 	sum12 = 0
 	for i in arrivals2:
-		sum12 += (1 - exponentialKernel(1, beta1, T, i))
+		sum12 += (1 - exp(-beta1*(T-i)))
 	sum12 = (alpha12/beta1)*sum12
 
 	## Calc recursive sum
@@ -150,19 +153,19 @@ def logLikelihood(arrivals1, arrivals2, params=[0.3,0.1,0.6,0.9,0.2,0.5,1.2,1.0]
 	R11, R12 = np.zeros(len(arrivals1)), np.zeros(len(arrivals1))
 
 	for i in range(1, len(R11)):
-		R11[i] = exponentialKernel(1, beta1, arrivals1[i], arrivals1[i-1])*(1+R11[i-1])
+		R11[int(i)] = exp(-beta1*(arrivals1[int(i)]-arrivals1[int(i-1)]))*(1+R11[int(i-1)])
 
 	for i in range(1, len(R11)):
 		tempSum1 = 0
 
 		for j in arrivals2:
-			if j >= arrivals1[i-1] and j < arrivals1[i]:
-				tempSum1 += exponentialKernel(1, beta1, arrivals1[i], j)
+			if j >= arrivals1[int(i-1)] and j < arrivals1[int(i)]:
+				tempSum1 += exp(-beta1*(arrivals1[int(i)]-j))
 
-		R12[i] = exponentialKernel(1, beta1, arrivals1[i], arrivals1[i-1])*(R12[i-1])+tempSum1
+		R12[int(i)] = exp(-beta1*(arrivals1[int(i)]-arrivals1[int(i-1)]))*(R12[int(i-1)])+tempSum1
 
 	for i in range(1,len(R11)):
-		sum13 += log(mu1 + alpha11*R11[i] + alpha12*R12[i])
+		sum13 += log(mu1 + alpha11*R11[int(i)] + alpha12*R12[int(i)])
 
 	logLikelihood1 = -mu1*T - sum11 - sum12 + sum13
 
@@ -171,12 +174,12 @@ def logLikelihood(arrivals1, arrivals2, params=[0.3,0.1,0.6,0.9,0.2,0.5,1.2,1.0]
 	## Calc compensator sums
 	sum21 = 0
 	for i in arrivals1:
-		sum21 += (1 - exponentialKernel(1, beta2, T, i))
+		sum21 += (1 - exp(-beta2*(T-i)))
 	sum21 = (alpha21/beta2)*sum21
 
 	sum22 = 0
 	for i in arrivals2:
-		sum22 += (1 - exponentialKernel(1, beta2, T, i))
+		sum22 += (1 - exp(-beta2*(T-i)))
 	sum22 = (alpha22/beta2)*sum22
 
 	## Calc recursive sum
@@ -186,43 +189,47 @@ def logLikelihood(arrivals1, arrivals2, params=[0.3,0.1,0.6,0.9,0.2,0.5,1.2,1.0]
 	R21, R22 = np.zeros(len(arrivals2)), np.zeros(len(arrivals2))
 
 	for i in range(1, len(R22)):
-		R22[i] = exponentialKernel(1, beta2, arrivals2[i], arrivals2[i-1])*(1+R22[i-1])
+		R22[int(i)] = exp(-beta2*(arrivals2[int(i)]-arrivals2[int(i-1)]))*(1+R22[int(i-1)])
 
 	for i in range(1, len(R22)):
 		tempSum2 = 0
 
 		for j in arrivals1:
-			if j >= arrivals2[i-1] and j < arrivals2[i]:
-				tempSum2 += exponentialKernel(1, beta2, arrivals2[i], j)
+			if j >= arrivals2[int(i-1)] and j < arrivals2[int(i)]:
+				tempSum2 += exp(-beta2*(arrivals2[int(i)]-j))
 
-		R21[i] = exponentialKernel(1, beta1, arrivals1[i], arrivals1[i-1])*(R21[i-1])+tempSum2
+		R21[int(i)] = exp(-beta2*(arrivals1[int(i)]-arrivals1[int(i-1)]))*(R21[int(i-1)])+tempSum2
 
 	for i in range(1,len(R22)):
-		sum23 += log(mu2 + alpha21*R21[i] + alpha22*R22[i])
+		sum23 += log(mu2 + alpha21*R21[int(i)] + alpha22*R22[int(i)])
 
-	logLikelihood1 = -mu1*T - sum11 - sum12 + sum13
+
 	logLikelihood2 = -mu2*T - sum21 - sum22 + sum23
 
 	logLikelihood = logLikelihood1 + logLikelihood2
 	return -logLikelihood
 
-def fit(arrivals1, arrivals2, params=[0.3,0.1,0.6,0.9,0.2,0.5,1.2,1.0]):
+def fit(arrivals1, arrivals2, params=(0.3,0.1,0.6,0.9,0.2,0.5,1.2,1.0)):
 	
 	def myFitFunc(x):
 		tList = []
 		for i in x:
-			tList.append(min(max(i, 0.0001), 2))
-		return logLikelihood(arrivals1, arrivals2, tList)
+			tList.append(min(max(i, 0.00001), 2))
+
+		tList[6] = max(max(tList[2],tList[3])+0.00001,tList[6])
+		tList[7] = max(max(tList[4],tList[5])+0.00001,tList[7])
+
+		return logLikelihood(arrivals1, arrivals2, tuple(tList))
 	
 	x0 = params
-	runLimit = 50
+	runLimit = 25#50
 	iteration = 0
 	bestFuncVal = 10000000000
 	bestx0 = []
 
 	while iteration < runLimit:
 		
-		mini = minimize(myFitFunc, x0, method='Nelder-Mead', options={'disp':False})#,'maxiter':10000, 'xtol':10**-20,'ftol':10**-20})
+		mini = minimize(myFitFunc, x0, method='Nelder-Mead', options={'disp':True})#,'maxiter':10000, 'xtol':10**-20,'ftol':10**-20})
 		
 		currentFuncVal = mini.fun
 		currentx0 = mini.x
@@ -241,8 +248,11 @@ def fit(arrivals1, arrivals2, params=[0.3,0.1,0.6,0.9,0.2,0.5,1.2,1.0]):
 
 	tList = []
 	for i in bestx0:
-		tList.append(min(max(i, 0.0001), 2))
-	return tList
+		tList.append(min(max(i, 0.00001), 2))
+	tList[6] = max(max(tList[2],tList[3])+0.00001,tList[6])
+	tList[7] = max(max(tList[4],tList[5])+0.00001,tList[7])
+
+	return tuple(tList)
 
 def cumulativeArrivals(arrivals1, arrivals2):
 	nCount1, nCount2 = np.ones_like(arrivals1), np.ones_like(arrivals2)
